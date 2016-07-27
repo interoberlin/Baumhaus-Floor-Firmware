@@ -14,6 +14,7 @@
 
 #define LED_PIN 28
 #define INPUT_PIN_NUMBER 0
+#define INDICATION_PIN 29
 
 volatile uint32_t cycle_count = 0;
 #define averaging_cycles 200
@@ -67,7 +68,6 @@ void setup_timers(void)
  */
 void TIMER2_IRQHandler()
 {
-    // 1ms has elapsed
     if (timer_1ms->EVENTS_COMPARE[0] && (timer_1ms->INTENSET & TIMER_INTENSET_COMPARE0_Msk))
     {
         // stop counter
@@ -98,10 +98,16 @@ void TIMER2_IRQHandler()
         else
         {
             if (counter_value < average_pulse_count - pulse_count_margin)
+            {
                 nrf_gpio_pin_set(LED_PIN);
-
+                nrf_gpio_pin_set(INDICATION_PIN);
+            }
             else if (counter_value >= average_pulse_count)
+            {
                 nrf_gpio_pin_clear(LED_PIN);
+                nrf_gpio_pin_clear(INDICATION_PIN);
+            }
+
         }
 
         // clear and restart counter
@@ -117,6 +123,10 @@ int main(void)
     // indicate averaging by turning LED on
     nrf_gpio_cfg_output(LED_PIN);
     nrf_gpio_pin_set(LED_PIN);
+
+    // configure pin for detection indication
+    nrf_gpio_cfg_output(INDICATION_PIN);
+    nrf_gpio_pin_clear(INDICATION_PIN);
 
     // GPIOTE setup
     nrf_gpio_cfg_input(INPUT_PIN_NUMBER, NRF_GPIO_PIN_NOPULL);
@@ -137,6 +147,7 @@ int main(void)
 
     setup_timers();
 
+    // infinite loop
 	while(true)
 	{
 	 //   asm("wfi"); // sleep: wait for interrupt
