@@ -16,8 +16,10 @@
 #define INPUT_PIN_NUMBER 0
 
 volatile uint32_t cycle_count = 0;
-#define averaging_cycles 400
+#define averaging_cycles 200
 volatile uint32_t average_pulse_count = 0;
+
+#define pulse_count_margin 5
 
 #define counter     NRF_TIMER1
 #define timer_1ms   NRF_TIMER2
@@ -51,7 +53,7 @@ void setup_timers(void)
     timer_1ms->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
 
     // Set timer compare values
-    timer_1ms->CC[0] = 2000;
+    timer_1ms->CC[0] = 20000;
     // Enable interrupt
     timer_1ms->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos);
     NVIC_EnableIRQ(timer_irq);
@@ -95,14 +97,11 @@ void TIMER2_IRQHandler()
         }
         else
         {
-            if (average_pulse_count == 0)
+            if (counter_value < average_pulse_count - pulse_count_margin)
                 nrf_gpio_pin_set(LED_PIN);
-            else
+
+            else if (counter_value >= average_pulse_count)
                 nrf_gpio_pin_clear(LED_PIN);
-/*            if (counter_value > average_pulse_count)
-                nrf_gpio_pin_set(LED_PIN);
-            else
-                nrf_gpio_pin_clear(LED_PIN);*/
         }
 
         // clear and restart counter
@@ -113,7 +112,7 @@ void TIMER2_IRQHandler()
 
 int main(void)
 {
-    printf("Hello world!\n");
+    printf("Hello world!\nAverage pulse count: ");
 
     // indicate averaging by turning LED on
     nrf_gpio_cfg_output(LED_PIN);
