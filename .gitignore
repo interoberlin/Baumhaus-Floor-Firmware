@@ -1,0 +1,14 @@
+# Eclipse files
+.project
+.cproject
+.settings/
+
+# Temporary files
+*.*~
+.*.swp
+
+# Binaries
+*.o
+bin/
+_build/
+build/
