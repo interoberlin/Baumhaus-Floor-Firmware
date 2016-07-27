@@ -72,19 +72,14 @@ void TIMER2_IRQHandler()
     if (NRF_TIMER2->EVENTS_COMPARE[0] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk))
     {
         NRF_TIMER2->EVENTS_COMPARE[0] = 0;
-
-        neopixel_set_color_and_show(&strip[0], 5, 0, 0, 8);
     }
 
-    if (NRF_TIMER2->EVENTS_COMPARE[1] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE1_Msk))
+    else if (NRF_TIMER2->EVENTS_COMPARE[1] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE1_Msk))
     {
         NRF_TIMER2->EVENTS_COMPARE[1] = 0;
 
-        neopixel_set_color_and_show(&strip[0], 5, 0, 0, 0);
-
-        /*
         // vorherige aus
-        for(int i = 5; i<10; i++)
+        for(int i = 0; i<10; i++)
         {
             neopixel_set_color(&strip[r], i, 0, 0, 0);
         }
@@ -93,13 +88,11 @@ void TIMER2_IRQHandler()
         r = (r+1) % 8;
 
         // naechste an
-        for(int i = 5; i<10; i++)
+        for(int i = 0; i<10; i++)
         {
             neopixel_set_color(&strip[r], i, 0, 0, 10);
         }
         neopixel_show(&strip[r]);
-        */
-
     }
 }
 
