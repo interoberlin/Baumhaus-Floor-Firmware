@@ -15,6 +15,7 @@
 
 // LEd strips
 neopixel_strip_t strip[8];
+volatile bool strip_changed[8] = {false, false, false, false, false, false, false, false};
 const uint8_t leds_per_strip = 10;
 const uint8_t strip_at_pin[8] = {3, 4, 2, 0, 29, 25, 23, 21};
 
@@ -47,8 +48,8 @@ void setup_timers(void)
     // Set timer bit resolution
     NRF_TIMER2->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
     // Set timer compare values
-    NRF_TIMER2->CC[0] = 10;
-    NRF_TIMER2->CC[1] = 32000;
+    NRF_TIMER2->CC[0] = 1;
+    NRF_TIMER2->CC[1] = 32768;
 
     // Enable interrupt on Timer 2, both for CC[0] and CC[1] compare match events
     NRF_TIMER2->INTENSET =
@@ -60,8 +61,32 @@ void setup_timers(void)
     NRF_TIMER2->TASKS_START = 1;
 }
 
+// which strip is currently on
 volatile uint32_t r = 0;
-volatile bool cc1_busy = false;
+
+inline void pattern_rotation()
+{
+    // vorherige aus
+    for(int i = 0; i<10; i++)
+    {
+        neopixel_set_color(&strip[r], i, 0, 0, 0);
+    }
+    strip_changed[r] = true;
+
+    r = (r+1) % 8;
+
+    // naechste an
+    for(int i = 0; i<10; i++)
+    {
+        neopixel_set_color(&strip[r], i, 0, 0, 10);
+    }
+    strip_changed[r] = true;
+}
+
+inline void proceed_with_pattern()
+{
+    pattern_rotation();
+}
 
 /**
  * Interrupts Service Routine (ISR) for the timer
@@ -72,27 +97,25 @@ void TIMER2_IRQHandler()
     if (NRF_TIMER2->EVENTS_COMPARE[0] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk))
     {
         NRF_TIMER2->EVENTS_COMPARE[0] = 0;
+
+        // update all the strips
+        // if they have changed
+        for (int i=0; i<8; i++)
+        {
+            if (strip_changed[i])
+            {
+                neopixel_show(&strip[i]);
+                strip_changed[i] = false;
+            }
+        }
     }
 
     else if (NRF_TIMER2->EVENTS_COMPARE[1] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE1_Msk))
     {
         NRF_TIMER2->EVENTS_COMPARE[1] = 0;
 
-        // vorherige aus
-        for(int i = 0; i<10; i++)
-        {
-            neopixel_set_color(&strip[r], i, 0, 0, 0);
-        }
-        neopixel_show(&strip[r]);
-
-        r = (r+1) % 8;
-
-        // naechste an
-        for(int i = 0; i<10; i++)
-        {
-            neopixel_set_color(&strip[r], i, 0, 0, 10);
-        }
-        neopixel_show(&strip[r]);
+        // execute pattern calculation
+        proceed_with_pattern();
     }
 }
 
