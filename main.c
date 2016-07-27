@@ -40,23 +40,28 @@ void setup_timers(void)
     NRF_TIMER2->MODE = TIMER_MODE_MODE_Timer;
     // clear the task first to be usable for later
     NRF_TIMER2->TASKS_CLEAR = 1;
+    // No shortcuts
+    NRF_TIMER2->SHORTS = 0;
     // Set prescaler: 0-9. Higher number gives slower timer. 0 gives 16MHz timer.
-    NRF_TIMER2->PRESCALER = 8;
+    NRF_TIMER2->PRESCALER = 6;
     // Set timer bit resolution
     NRF_TIMER2->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
     // Set timer compare values
-    NRF_TIMER2->CC[0] = 1;
-    NRF_TIMER2->CC[1] = 65500;
+    NRF_TIMER2->CC[0] = 10;
+    NRF_TIMER2->CC[1] = 32000;
 
     // Enable interrupt on Timer 2, both for CC[0] and CC[1] compare match events
-    NRF_TIMER2->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos) | (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
+    NRF_TIMER2->INTENSET =
+            (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos)
+          | (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
     NVIC_EnableIRQ(TIMER2_IRQn);
 
     // Start TIMER2
     NRF_TIMER2->TASKS_START = 1;
 }
 
-uint8_t r = 0;
+volatile uint32_t r = 0;
+volatile bool cc1_busy = false;
 
 /**
  * Interrupts Service Routine (ISR) for the timer
@@ -64,8 +69,20 @@ uint8_t r = 0;
  */
 void TIMER2_IRQHandler()
 {
+    if (NRF_TIMER2->EVENTS_COMPARE[0] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE0_Msk))
+    {
+        NRF_TIMER2->EVENTS_COMPARE[0] = 0;
+
+        neopixel_set_color_and_show(&strip[0], 5, 0, 0, 8);
+    }
+
     if (NRF_TIMER2->EVENTS_COMPARE[1] && (NRF_TIMER2->INTENSET & TIMER_INTENSET_COMPARE1_Msk))
     {
+        NRF_TIMER2->EVENTS_COMPARE[1] = 0;
+
+        neopixel_set_color_and_show(&strip[0], 5, 0, 0, 0);
+
+        /*
         // vorherige aus
         for(int i = 5; i<10; i++)
         {
@@ -81,6 +98,8 @@ void TIMER2_IRQHandler()
             neopixel_set_color(&strip[r], i, 0, 0, 10);
         }
         neopixel_show(&strip[r]);
+        */
+
     }
 }
 
@@ -91,6 +110,9 @@ int main(void)
 
 	while(true)
 	{
-	    asm("wfi"); // sleep: wait for interrupt
+	 //   asm("wfi"); // sleep: wait for interrupt
+	    __WFI();
+	    __SEV();
+	    __WFE();
 	}
 }
