@@ -1,98 +1,19 @@
+TARGET_CHIP := NRF51822_QFAA_CA
+BOARD := BOARD_PCA10001
 
-#
-# Makefile for nRF51 projects
-#
-# Author: Matthias Bock <mail@matthiasbock.net>
-# License: GNU GPLv3
-#
+C_SOURCE_FILES += main.c
+C_SOURCE_FILES += nrf_delay.c
+C_SOURCE_FILES += neopixel.c
 
- 
-#
-# Toolchain
-#
-TOOLCHAIN_PATH   = /usr/bin/
-TOOLCHAIN_PREFIX = arm-none-eabi
-AS      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-as
-CC      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gcc
-LD      = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-ld
-OBJCOPY = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objcopy
-OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
-SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
-GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
-
-newlib  = /usr/lib/arm-none-eabi/newlib/libc.a
-
-#
-# Compiler and Linker
-#
-CFLAGS += -std=gnu99 -Wall -Wextra -g
-CFLAGS += -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
-CFLAGS += -ffreestanding
-# keep every function in separate section. This will allow linker to dump unused functions
-CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
-CFLAGS += -fno-builtin --short-enums
-CFLAGS += -I arm/
-CFLAGS += -I nordic/
-CFLAGS += -I sdk/
-
-# TODO: auto-detect chip revision
-CHIP_REVISION = aa
-
-LINKER_SCRIPT = linker/nrf51-blank-xx$(CHIP_REVISION).ld
-LDFLAGS += -T $(LINKER_SCRIPT)
-LDFLAGS += -L /usr/lib/gcc/arm-none-eabi/4.8/armv6-m/
-LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
-LDFLAGS += -static
-LDFLAGS += -nostartfiles -nostdlib
-LDFLAGS += --start-group
-LDFLAGS += -lgcc
-
-# required for semihosting 
-CFLAGS  += --specs=rdimon.specs
-LDFLAGS += -lrdimon 
-
-# filename of used softdevice (full path)  
-SOFTDEVICE = nordic/softdevice/s110_nrf51822_7.3.0_softdevice.hex
+OUTPUT_FILENAME := main
+SDK_PATH = ../NordicSemiconductor/SDK_6.1.0/
 
 
-#
-# Build targets
-#
+#Uncomment correct line if you have s110 programmed on the chip.
+DEVICE_VARIANT := xxaa
+#DEVICE_VARIANT := xxab
 
-all: demo_uart.elf demo_spi.elf demo_ad53x4.elf demo_leds.elf demo_rgbstrip.elf demo_timers.elf orchid_lamp.elf demo_radio.elf
+#USE_SOFTDEVICE := s110
+#USE_SOFTDEVICE := s210
 
-.elf: sdk/nrf51_startup.o nordic/system_nrf51.o sdk/strings.o sdk/fifo.o sdk/uart.o sdk/delay.o demo_uart.o 
-	$(LD) $(LDFLAGS) $^ -o $@
-
-define LOAD_SOFTDEVICE_COMMAND
-target remote localhost:3333
-monitor reset halt
-load
-endef
-export LOAD_SOFTDEVICE_COMMAND
-
-# Flash the SoftDevice HEX-file into the chip
-softdevice:
-	echo "$$LOAD_SOFTDEVICE_COMMAND" | $(GDB) $(SOFTDEVICE)
-
-%.o: %.c %s
-	$(CC) $(CFLAGS) -c $< -o $@
-
-%.hex: %.elf
-	$(OBJCOPY) -Oihex $< $@
-
-%.bin: %.elf
-	$(OBJCOPY) -Obinary $< $@
-
-clean:
-	rm -f *.o */*.o *.out *.bin *.elf *.hex *.map
-
-
-#
-# Debugger
-#
-OPENOCD_CFG_DIR = debug/
-# workaround: problems because the folder is named like the target in the subfolder's Makefile
-.PHONY: debug
-include debug/Makefile
-
+include $(SDK_PATH)Source/templates/gcc/Makefile.common
