@@ -77,7 +77,7 @@ void TIMER2_IRQHandler()
         timer_1ms->TASKS_CLEAR = 1;
 
         // request counter value to register
-        counter->TASKS_CAPTURE[0] = 1;
+        //counter->TASKS_CAPTURE[0] = 1; // moved to PPI
         uint32_t counter_value = counter->CC[0];
         //printf("%d\n", counter_value);
 
@@ -124,20 +124,17 @@ int main(void)
     nrf_gpio_cfg_sense_input(INPUT_PIN_NUMBER, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
     nrf_gpiote_event_config(0, INPUT_PIN_NUMBER, NRF_GPIOTE_POLARITY_LOTOHI);
 
-//    nrf_gpiote_task_config(LED_PIN);
-
     // PPI setup:
     // Pin toggle -> Counter increment
     NRF_PPI->CH[0].EEP = (uint32_t) (&(NRF_GPIOTE->EVENTS_IN[0]));
     NRF_PPI->CH[0].TEP = (uint32_t) (&(counter->TASKS_COUNT));
-//    NRF_PPI->CH[0].TEP = (uint32_t) (&NRF_GPIOTE->TASKS_OUT[0]);
     NRF_PPI->CHEN = (PPI_CHEN_CH0_Enabled << PPI_CHEN_CH0_Pos);
 
     // PPI setup:
     // Timer "overflow" -> Capture counter value
-    //NRF_PPI->CH[1].EEP = (uint32_t)&timer_1ms->EVENTS_COMPARE[0];
-    //NRF_PPI->CH[1].TEP = (uint32_t)&counter->TASKS_CAPTURE[0];
-    //NRF_PPI->CHEN |= (PPI_CHEN_CH1_Enabled << PPI_CHEN_CH1_Pos);
+    NRF_PPI->CH[1].EEP = (uint32_t)&timer_1ms->EVENTS_COMPARE[0];
+    NRF_PPI->CH[1].TEP = (uint32_t)&counter->TASKS_CAPTURE[0];
+    NRF_PPI->CHEN |= (PPI_CHEN_CH1_Enabled << PPI_CHEN_CH1_Pos);
 
     setup_timers();
 
