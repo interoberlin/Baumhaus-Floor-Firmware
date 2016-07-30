@@ -1,8 +1,9 @@
 # Baum-Modell-Firmware
 
-Dieses Repo beinhaltet die Quellen für die Firmware des nRF51822
-
+Dieses Repo beinhaltet die Quellen für die Firmware des nRF51822<br/>
 für unser Modell des zukünftigen, zentralen Baums im Baumhaus.
+
+https://www.youtube.com/watch?v=2QdcmoUkqVA
 
 Lizenz: GNU GPL v3
 
