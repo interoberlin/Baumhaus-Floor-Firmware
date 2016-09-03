@@ -17,10 +17,11 @@
 #define INDICATION_PIN 29
 
 volatile uint32_t cycle_count = 0;
-#define averaging_cycles 200
+#define averaging_cycles 20
 volatile uint32_t average_pulse_count = 0;
 
-#define pulse_count_margin 5
+#define measurement_interval 60000 // 200 = 1ms?, max: 16bit
+#define pulse_count_margin 10
 
 #define counter     NRF_TIMER1
 #define timer_1ms   NRF_TIMER2
@@ -54,7 +55,7 @@ void setup_timers(void)
     timer_1ms->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
 
     // Set timer compare values
-    timer_1ms->CC[0] = 20000;
+    timer_1ms->CC[0] = measurement_interval;
     // Enable interrupt
     timer_1ms->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos);
     NVIC_EnableIRQ(timer_irq);
