@@ -5,14 +5,13 @@ C_SOURCE_FILES += main.c
 C_SOURCE_FILES += nrf_delay.c
 
 OUTPUT_FILENAME := main
-SDK_PATH = ../NordicSemiconductor/SDK_6.1.0/
+SDK_PATH = ../nordic/sdk/nrf51822/
 
 
 #Uncomment correct line if you have s110 programmed on the chip.
 DEVICE_VARIANT := xxaa
-#DEVICE_VARIANT := xxab
 
 #USE_SOFTDEVICE := s110
-#USE_SOFTDEVICE := s210
 
 include $(SDK_PATH)Source/templates/gcc/Makefile.common
+
