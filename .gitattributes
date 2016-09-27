@@ -1,0 +1,6 @@
+*.c: text
+*.h: text
+*.ld: text
+Makefile: text
+
+*.jpg: binary
