@@ -1,9 +1,3 @@
-[submodule "nordic/softdevice"]
-	path = nordic/softdevice
-	url = git@git.interoberlin.de:/home/git/repositories/matthias/nRF51-SoftDevice.git
-[submodule "nordic/sdk"]
-	path = nordic/sdk
-	url = git@git.interoberlin.de:/home/git/repositories/matthias/nRF51-SDK-Nordic.git
 [submodule "json"]
 	path = json
 	url = git@github.com:interoberlin/libSentientJSON.git
