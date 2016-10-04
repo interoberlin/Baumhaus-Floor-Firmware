@@ -8,10 +8,6 @@
 
 #define LED_PIN 28
 
-#define FLOOR_USES_TIMER2
-#define PULSE_COUNTER      NRF_TIMER1
-#define TIMER_MEASUREMENT  NRF_TIMER2
-
 #include "floor.h"
 
 
@@ -20,7 +16,7 @@
  * once every measurement interval.
  * It configures and starts a measurement.
  */
-void isr_measurement_start()
+void on_measurement_start()
 {
     select_next_sensor();
     restart_pulse_counter();
@@ -31,7 +27,7 @@ void isr_measurement_start()
  * when the measurement time has been elapsed.
  * It stops the pulse counter and evaluates the result.
  */
-void isr_measurement_complete()
+void on_measurement_complete()
 {
     stop_pulse_counter();
     get_pulse_count();
@@ -39,7 +35,8 @@ void isr_measurement_complete()
     if (is_last_sensor())
     {
         generate_json();
-        ble_send_json();
+        // TODO:
+        //ble_send_json();
     }
 }
 
@@ -69,9 +66,27 @@ void on_ble_disconnected()
  */
 void init_measurement()
 {
-    configure_pulse_counter(&isr_measurement_complete);
-    
-    configure_measurement_timer(&isr_measurement_start);
+    configure_pulse_counter();
+    configure_measurement_timer();
+    set_handler_measurement_interval(&on_measurement_start);
+    set_handler_measurement_complete(&on_measurement_complete);
+}
+
+/**
+ * Initialize Bluetooth Low Energy capabilities:
+ *
+ *  initialize SoftDevice
+ *  configure GATT server
+ *  attach event handlers
+ *  configure advertising
+ *  start advertising
+ *
+ */
+void init_ble()
+{
+    // TODO...
+    //set_handler_ble_connected(&on_ble_connected);
+    //set_handler_ble_disconnected(&on_ble_disconnected);
 }
 
 /**
@@ -79,7 +94,7 @@ void init_measurement()
  */
 int main(void)
 {
-    //init_ble();
+    init_ble();
     init_measurement();
 
     // infinite loop

@@ -1,15 +1,38 @@
 
 #include "floor.h"
 
+
 // index of the currently measured sensor
 uint8_t current_sensor = 0;
 
-// the index of the last sensor
-const uint8_t last_sensor = 5;
+// local pointers to event handlers
+handler_t isr_measurement_complete = 0;
+handler_t isr_measurement_interval = 0;
 
-// timer overflow values
-const uint32_t measurement_duration = 10;
-const uint32_t measurement_interval = 20;
+
+/**
+ * Use Programmable Peripheral Interconnect channels 0 and 1
+ * to connect rising edges on a pin to pulse counter input
+ */
+void configure_pin_for_counting(uint8_t pin)
+{
+    // GPIOTE setup
+    nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_NOPULL);
+    nrf_gpio_cfg_sense_input(pin, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
+    nrf_gpiote_event_config(0, pin, NRF_GPIOTE_POLARITY_LOTOHI);
+
+    // PPI setup:
+    // pin toggled => increment counter
+    NRF_PPI->CH[0].EEP = (uint32_t) (&(NRF_GPIOTE->EVENTS_IN[0]));
+    NRF_PPI->CH[0].TEP = (uint32_t) (&(PULSE_COUNTER->TASKS_COUNT));
+    NRF_PPI->CHEN = (PPI_CHEN_CH0_Enabled << PPI_CHEN_CH0_Pos);
+
+    // PPI setup:
+    // measurement complete => capture counter value
+    NRF_PPI->CH[1].EEP = (uint32_t)&TIMER_MEASUREMENT->EVENTS_COMPARE[0];
+    NRF_PPI->CH[1].TEP = (uint32_t)&PULSE_COUNTER->TASKS_CAPTURE[0];
+    NRF_PPI->CHEN |= (PPI_CHEN_CH1_Enabled << PPI_CHEN_CH1_Pos);
+}
 
 /**
  * Set the currently selected sensor to be the first one
@@ -17,6 +40,7 @@ const uint32_t measurement_interval = 20;
 void select_first_sensor()
 {
     current_sensor = 1;
+    configure_pin_for_counting(sensor_pin[0]);
 }
 
 /**
@@ -29,6 +53,10 @@ void select_next_sensor()
     if (is_last_sensor())
     {
         select_first_sensor();
+    }
+    else
+    {
+        configure_pin_for_counting(sensor_pin[current_sensor]);
     }
 }
 
@@ -51,122 +79,103 @@ void generate_json()
 }
 
 /**
- * Send the JSON string generated above
- * to the currently connected BLE device
- */
-void ble_send_json()
-{
-    // TODO
-}
-
-/**
- * Use Programmable Peripheral Interconnect channels 0 and 1
- * to connect rising edges on a pin to pulse counter input
- */
-void configure_pin_for_counting(uint8_t pin)
-{
-    // GPIOTE setup
-    nrf_gpio_cfg_input(INPUT_PIN_NUMBER, NRF_GPIO_PIN_NOPULL);
-    nrf_gpio_cfg_sense_input(INPUT_PIN_NUMBER, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
-    nrf_gpiote_event_config(0, INPUT_PIN_NUMBER, NRF_GPIOTE_POLARITY_LOTOHI);
-
-    // PPI setup:
-    // Pin toggle -> Counter increment
-    NRF_PPI->CH[0].EEP = (uint32_t) (&(NRF_GPIOTE->EVENTS_IN[0]));
-    NRF_PPI->CH[0].TEP = (uint32_t) (&(PULSE_COUNTER->TASKS_COUNT));
-    NRF_PPI->CHEN = (PPI_CHEN_CH0_Enabled << PPI_CHEN_CH0_Pos);
-
-    // PPI setup:
-    // Timer "overflow" -> Capture counter value
-    NRF_PPI->CH[1].EEP = (uint32_t)&TIMER_MEASUREMENT->EVENTS_COMPARE[0];
-    NRF_PPI->CH[1].TEP = (uint32_t)&PULSE_COUNTER->TASKS_CAPTURE[0];
-    NRF_PPI->CHEN |= (PPI_CHEN_CH1_Enabled << PPI_CHEN_CH1_Pos);
-}
-
-/**
  * Prepare a counter peripheral
  * for usage as pulse counter
  */
 void configure_pulse_counter()
 {
-    // Set the timer to Counter Mode
+    // set the timer to counter mode
     PULSE_COUNTER->MODE = TIMER_MODE_MODE_Counter;
-    // Set timer bit resolution
+    // set timer bit resolution
     PULSE_COUNTER->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
-    // No shortcuts
+    // no shortcuts
     PULSE_COUNTER->SHORTS = 0;
 }
 
 void restart_pulse_counter()
 {
-    // Clear counter value
+    // clear counter value
     PULSE_COUNTER->TASKS_CLEAR = 1;
-    // Enable counting
+    // enable counting
     PULSE_COUNTER->TASKS_START = 1;
 }
 
 void stop_pulse_counter()
 {
-    // Stop counting
+    // stop counting
     PULSE_COUNTER->TASKS_STOP = 1;
 }
 
-void get_pulse_count()
+uint32_t get_pulse_count()
 {
     // request counter value to register
-    //PULSE_COUNTER->TASKS_CAPTURE[0] = 1; // moved to PPI
-    uint32_t counter_value = PULSE_COUNTER->CC[0];
+    //PULSE_COUNTER->TASKS_CAPTURE[0] = 1; // value capturing has been moved to PPI
+    return PULSE_COUNTER->CC[0];
 }
 
 /**
  * Prepare a timer peripheral
- * to provide an interrupt,
- * when 
+ * to throw an interrupt,
+ * both when a measurement shall be started
+ * and when it shall be stopped
  */
 void configure_measurement_timer()
 {
-    // Set the timer to Counter Mode
+    // set the timer to Counter Mode
     TIMER_MEASUREMENT->MODE = TIMER_MODE_MODE_Timer;
-    // Set timer bit resolution
+    // set timer bit resolution
     TIMER_MEASUREMENT->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
-    // Set prescaler: 0-9. Higher number gives slower timer. 0 gives 16MHz timer.
+    // set prescaler: 0-9. Higher number gives slower timer. 0 gives 16MHz timer.
+    // fTIMER = 16 MHz / (2**PRESCALER)
+    // 3: 16 MHz / 8 = 2 MHz
     TIMER_MEASUREMENT->PRESCALER = 3;
-    // No shortcuts
+    // no shortcuts
     TIMER_MEASUREMENT->SHORTS = 0;
     // clear the task first to be usable for later
     TIMER_MEASUREMENT->TASKS_CLEAR = 1;
 
-    // Set timer compare values
+    // set timer compare values
     TIMER_MEASUREMENT->CC[0] = measurement_duration;
     TIMER_MEASUREMENT->CC[1] = measurement_interval;
 
-    // Enable interrupts
+    // enable interrupt upon compare event
     TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos);
     TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
 
+    // enable appropriate timer interrupt
 #ifdef FLOOR_USES_TIMER0
     NVIC_EnableIRQ(TIMER0_IRQn);
 
-#elif FLOOR_USES_TIMER1
+#elifdef FLOOR_USES_TIMER1
     NVIC_EnableIRQ(TIMER1_IRQn);
 
-#elif FLOOR_USES_TIMER2
+#elifdef FLOOR_USES_TIMER2
     NVIC_EnableIRQ(TIMER2_IRQn);
 #endif
 }
 
 void measurement_timer_enable()
 {
-    // Reset
+    // reset timer
     TIMER_MEASUREMENT->TASKS_CLEAR = 1;
-    // Start timer
+    // start timer
     TIMER_MEASUREMENT->TASKS_START = 1;
 }
 
 void measurement_timer_disable()
 {
-    // Stop timer
+    // stop timer
     TIMER_MEASUREMENT->TASKS_STOP = 1;
+}
+
+void set_handler_measurement_complete(handler_t* handler)
+{
+    isr_measurement_complete = handler;
+}
+
+void set_handler_measurement_interval(handler_t* handler)
+{
+    isr_measurement_interval = handler;
 }
 
 /**
@@ -177,31 +186,42 @@ void measurement_timer_disable()
 #ifdef FLOOR_USES_TIMER0
 void TIMER0_IRQHandler()
 
-#elif FLOOR_USES_TIMER1
+#elifdef FLOOR_USES_TIMER1
 void TIMER1_IRQHandler()
 
-#elif FLOOR_USES_TIMER2
+#elifdef FLOOR_USES_TIMER2
 void TIMER2_IRQHandler()
 #endif
 {
-    // counter value captured
+    /*
+     * a measurement is complete:
+     * the counter value has been captured
+     */
     if (TIMER_MEASUREMENT->EVENTS_COMPARE[0]                           // compare channel 0 event
     && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE0_Msk))    // channel 0 is enabled
     {
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
 
-        isr_measurement_complete();
+        if (isr_measurement_complete != NULL)
+        {
+            isr_measurement_complete();
+        }
     }
 
-    // measurement interval
+    /*
+     * once every measurement interval
+     */
     else if (TIMER_MEASUREMENT->EVENTS_COMPARE[1]                      // compare channel 1 event
     && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE1_Msk))    // channel 1 is enabled
     {
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
 
-        isr_measurement_complete();
+        if (isr_measurement_interval != NULL)
+        {
+            isr_measurement_interval();
+        }
 
         // clear and restart counter
         PULSE_COUNTER->TASKS_CLEAR = 1;
