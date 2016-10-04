@@ -6,8 +6,8 @@
 uint8_t current_sensor = 0;
 
 // local pointers to event handlers
-handler_t isr_measurement_complete = 0;
-handler_t isr_measurement_interval = 0;
+handler_t handler_measurement_complete = 0;
+handler_t handler_measurement_interval = 0;
 
 
 /**
@@ -175,12 +175,12 @@ void measurement_timer_disable()
 
 void set_handler_measurement_complete(handler_t handler)
 {
-    isr_measurement_complete = handler;
+    handler_measurement_complete = handler;
 }
 
 void set_handler_measurement_interval(handler_t handler)
 {
-    isr_measurement_interval = handler;
+    handler_measurement_interval = handler;
 }
 
 /**
@@ -211,9 +211,9 @@ void TIMER2_IRQHandler()
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
 
-        if (isr_measurement_complete != 0)
+        if (handler_measurement_complete != 0)
         {
-            isr_measurement_complete();
+            (*handler_measurement_complete)();
         }
     }
 
@@ -226,9 +226,9 @@ void TIMER2_IRQHandler()
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
 
-        if (isr_measurement_interval != 0)
+        if (handler_measurement_interval != 0)
         {
-            isr_measurement_interval();
+            (*handler_measurement_interval)();
         }
 
         // clear and restart counter
