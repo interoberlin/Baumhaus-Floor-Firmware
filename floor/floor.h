@@ -20,12 +20,16 @@
 // the index of the last sensor
 #define last_sensor 5
 
-// timer overflow values as multiples of clock ticks (depends on fTIMER i.e. PRESCALER value)
-#define measurement_duration 1000
-#define measurement_interval 2000
+/*
+ * timer overflow values as multiples of clock ticks (depends on fTIMER i.e. PRESCALER value)
+ * measurement duration: 10 ms
+ * measurement interval: 13 ms / 77 Hz
+ */ 
+#define measurement_duration 1250
+#define measurement_interval 1625
 
 // pins to which sensors are attached
-#define sensor_pin {0,1,2,7,6,5}
+const uint8_t sensor_pin[] = {0,1,2,7,6,5};
 
 // ------------------------------------------------
 
@@ -48,7 +52,7 @@ void configure_measurement_timer();
 void measurement_timer_enable();
 void measurement_timer_disable();
 
-void set_handler_measurement_complete(handler_t*);
-void set_handler_measurement_interval(handler_t*);
+void set_handler_measurement_complete(handler_t);
+void set_handler_measurement_interval(handler_t);
 
 #endif // FLOOR_H

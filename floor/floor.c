@@ -125,10 +125,15 @@ void configure_measurement_timer()
     TIMER_MEASUREMENT->MODE = TIMER_MODE_MODE_Timer;
     // set timer bit resolution
     TIMER_MEASUREMENT->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
-    // set prescaler: 0-9. Higher number gives slower timer. 0 gives 16MHz timer.
-    // fTIMER = 16 MHz / (2**PRESCALER)
-    // 3: 16 MHz / 8 = 2 MHz
-    TIMER_MEASUREMENT->PRESCALER = 3;
+    /*
+     * set prescaler: 0-9
+     * fTIMER = 16 MHz / (2**PRESCALER)
+     *
+     * 16 MHz / 2**3 = 2 MHz
+     * 16 MHz / 2**9 = 31250 Hz
+     * 16 MHz / 2**7 = 125 kHz
+     */
+    TIMER_MEASUREMENT->PRESCALER = 7;
     // no shortcuts
     TIMER_MEASUREMENT->SHORTS = 0;
     // clear the task first to be usable for later
@@ -168,12 +173,12 @@ void measurement_timer_disable()
     TIMER_MEASUREMENT->TASKS_STOP = 1;
 }
 
-void set_handler_measurement_complete(handler_t* handler)
+void set_handler_measurement_complete(handler_t handler)
 {
     isr_measurement_complete = handler;
 }
 
-void set_handler_measurement_interval(handler_t* handler)
+void set_handler_measurement_interval(handler_t handler)
 {
     isr_measurement_interval = handler;
 }
@@ -184,14 +189,17 @@ void set_handler_measurement_interval(handler_t* handler)
  * and measurement interval
  */
 #ifdef FLOOR_USES_TIMER0
-void TIMER0_IRQHandler()
-
+    #define TIMER_ISR() void TIMER0_IRQHandler
 #elifdef FLOOR_USES_TIMER1
-void TIMER1_IRQHandler()
-
+    #define TIMER_ISR() void TIMER1_IRQHandler
 #elifdef FLOOR_USES_TIMER2
-void TIMER2_IRQHandler()
+    #define TIMER_ISR() void TIMER2_IRQHandler
+#else
+    #define TIMER_ISR() void unused
 #endif
+
+//TIMER_ISR()()
+void TIMER2_IRQHandler()
 {
     /*
      * a measurement is complete:
@@ -203,7 +211,7 @@ void TIMER2_IRQHandler()
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
 
-        if (isr_measurement_complete != NULL)
+        if (isr_measurement_complete != 0)
         {
             isr_measurement_complete();
         }
@@ -218,7 +226,7 @@ void TIMER2_IRQHandler()
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
 
-        if (isr_measurement_interval != NULL)
+        if (isr_measurement_interval != 0)
         {
             isr_measurement_interval();
         }
