@@ -11,27 +11,14 @@ handler_t handler_measurement_interval = 0;
 
 
 /**
- * Use Programmable Peripheral Interconnect channels 0 and 1
- * to connect rising edges on a pin to pulse counter input
+ * Use GPIO Tasks and Events (GPIOTE) channel 0
+ * to generate an event, when the selected pin encounters a rising edge
  */
 void configure_pin_for_counting(uint8_t pin)
 {
-    // GPIOTE setup
     nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_NOPULL);
     nrf_gpio_cfg_sense_input(pin, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
     nrf_gpiote_event_config(0, pin, NRF_GPIOTE_POLARITY_LOTOHI);
-
-    // PPI setup:
-    // pin toggled => increment counter
-    NRF_PPI->CH[0].EEP = (uint32_t) (&(NRF_GPIOTE->EVENTS_IN[0]));
-    NRF_PPI->CH[0].TEP = (uint32_t) (&(PULSE_COUNTER->TASKS_COUNT));
-    NRF_PPI->CHEN = (PPI_CHEN_CH0_Enabled << PPI_CHEN_CH0_Pos);
-
-    // PPI setup:
-    // measurement complete => capture counter value
-    NRF_PPI->CH[1].EEP = (uint32_t)&TIMER_MEASUREMENT->EVENTS_COMPARE[0];
-    NRF_PPI->CH[1].TEP = (uint32_t)&PULSE_COUNTER->TASKS_CAPTURE[0];
-    NRF_PPI->CHEN |= (PPI_CHEN_CH1_Enabled << PPI_CHEN_CH1_Pos);
 }
 
 /**
@@ -79,8 +66,9 @@ void generate_json()
 }
 
 /**
- * Prepare a counter peripheral
- * for usage as pulse counter
+ * Prepare a counter peripheral for usage as pulse counter and
+ * use Programmable Peripheral Interconnect (PPI) channels 0 and 1
+ * to connect rising edges on a pin to pulse counter input
  */
 void configure_pulse_counter()
 {
@@ -90,6 +78,18 @@ void configure_pulse_counter()
     PULSE_COUNTER->BITMODE = TIMER_BITMODE_BITMODE_16Bit;
     // no shortcuts
     PULSE_COUNTER->SHORTS = 0;
+
+    // PPI setup:
+    // pin toggled => increment counter
+    NRF_PPI->CH[0].EEP = (uint32_t) (&(NRF_GPIOTE->EVENTS_IN[0]));
+    NRF_PPI->CH[0].TEP = (uint32_t) (&(PULSE_COUNTER->TASKS_COUNT));
+    NRF_PPI->CHEN = (PPI_CHEN_CH0_Enabled << PPI_CHEN_CH0_Pos);
+
+    // PPI setup:
+    // measurement complete => capture counter value
+    NRF_PPI->CH[1].EEP = (uint32_t)&TIMER_MEASUREMENT->EVENTS_COMPARE[0];
+    NRF_PPI->CH[1].TEP = (uint32_t)&PULSE_COUNTER->TASKS_CAPTURE[0];
+    NRF_PPI->CHEN |= (PPI_CHEN_CH1_Enabled << PPI_CHEN_CH1_Pos);
 }
 
 void restart_pulse_counter()
@@ -154,9 +154,13 @@ void configure_measurement_timer()
 #elifdef FLOOR_USES_TIMER1
     NVIC_EnableIRQ(TIMER1_IRQn);
 
-#elifdef FLOOR_USES_TIMER2
+//#elifdef FLOOR_USES_TIMER2
+#else
     NVIC_EnableIRQ(TIMER2_IRQn);
 #endif
+
+    // manual setting for testing
+    NVIC_EnableIRQ(TIMER2_IRQn);
 }
 
 void measurement_timer_enable()
@@ -199,6 +203,7 @@ void set_handler_measurement_interval(handler_t handler)
 #endif
 
 //TIMER_ISR()()
+// manual setting for testing
 void TIMER2_IRQHandler()
 {
     /*
@@ -226,13 +231,13 @@ void TIMER2_IRQHandler()
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
 
+        // clear and restart counter
+        PULSE_COUNTER->TASKS_CLEAR = 1;
+        //PULSE_COUNTER->TASKS_START = 1;
+
         if (handler_measurement_interval != 0)
         {
             (*handler_measurement_interval)();
         }
-
-        // clear and restart counter
-        PULSE_COUNTER->TASKS_CLEAR = 1;
-        //PULSE_COUNTER->TASKS_START = 1;
     }
 }

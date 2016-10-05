@@ -18,6 +18,7 @@
 #define TIMER_MEASUREMENT  NRF_TIMER2
 
 // the index of the last sensor
+// counting start with 1
 #define last_sensor 5
 
 /*
