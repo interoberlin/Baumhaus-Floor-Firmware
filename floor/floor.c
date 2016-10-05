@@ -235,6 +235,10 @@ void TIMER2_IRQHandler()
         PULSE_COUNTER->TASKS_CLEAR = 1;
         //PULSE_COUNTER->TASKS_START = 1;
 
+        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
+            nrf_gpio_pin_toggle(PIN_DEBUG_MEASUREMENT_INTERVAL);
+        #endif
+
         if (handler_measurement_interval != 0)
         {
             (*handler_measurement_interval)();

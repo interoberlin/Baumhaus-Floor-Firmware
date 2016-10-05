@@ -32,6 +32,8 @@
 // pins to which sensors are attached
 const uint8_t sensor_pin[] = {0,1,2,7,6,5};
 
+#define PIN_DEBUG_MEASUREMENT_INTERVAL 3
+
 // ------------------------------------------------
 
 // a typedef for the handler functions,
