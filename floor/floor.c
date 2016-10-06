@@ -27,7 +27,7 @@ void configure_pin_for_counting(uint8_t pin)
 void select_first_sensor()
 {
     current_sensor = 1;
-    configure_pin_for_counting(sensor_pin[0]);
+    configure_pin_for_counting(sensor_pin(0));
 }
 
 /**
@@ -43,7 +43,7 @@ void select_next_sensor()
     }
     else
     {
-        configure_pin_for_counting(sensor_pin[current_sensor]);
+        configure_pin_for_counting(sensor_pin(current_sensor));
     }
 }
 
@@ -146,6 +146,11 @@ void configure_measurement_timer()
     // enable interrupt upon compare event
     TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos);
     TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
+
+    // configure debug pin as output
+    #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
+        nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT_INTERVAL);
+    #endif
 
     // enable appropriate timer interrupt
 #ifdef FLOOR_USES_TIMER0

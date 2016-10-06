@@ -96,6 +96,7 @@ int main(void)
 {
     init_ble();
     init_measurement();
+    //measurement_timer_enable();
 
     // infinite loop
 	while(true)

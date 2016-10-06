@@ -1,6 +1,7 @@
 #ifndef FLOOR_H
 #define FLOOR_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -29,10 +30,9 @@
 #define measurement_duration 1250
 #define measurement_interval 1625
 
-// pins to which sensors are attached
-const uint8_t sensor_pin[] = {0,1,2,7,6,5};
+#define sensor_pin(index) (const uint8_t[]){1,2,7,6,5}[index]
 
-#define PIN_DEBUG_MEASUREMENT_INTERVAL 3
+#define PIN_DEBUG_MEASUREMENT_INTERVAL 0
 
 // ------------------------------------------------
 
