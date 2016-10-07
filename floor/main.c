@@ -6,10 +6,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define LED_PIN 28
+#include "clock.h"
 
 #include "floor.h"
 
+#define LED_PIN 28
 
 /**
  * This method is invoked
@@ -59,6 +60,25 @@ void on_ble_disconnected()
 {
     measurement_timer_disable();
 }
+/**
+ * Make sure, the high frequency clock is started
+ */
+void init_hfclock()
+{
+    // configure 16MHz crystal frequency
+    CLOCK_XTALFREQ = 0xFF;
+
+    // according to the Reference Manual the RADIO requires the crystal as clock source
+    CLOCK_HFCLKSTAT = 1;
+
+    // start high frequency clock
+    if (!CLOCK_EVENT_HFCLKSTARTED)
+    {
+        CLOCK_TASK_HFCLKSTART = 1;
+        while (!CLOCK_EVENT_HFCLKSTARTED)
+            asm("nop");
+    }
+}
 
 /**
  * Prepare timers and counters
@@ -94,9 +114,10 @@ void init_ble()
  */
 int main(void)
 {
+    //init_hfclock();
     init_ble();
     init_measurement();
-    //measurement_timer_enable();
+    measurement_timer_enable();
 
     // infinite loop
 	while(true)

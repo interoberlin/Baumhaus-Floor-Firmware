@@ -132,8 +132,9 @@ void configure_measurement_timer()
      * 16 MHz / 2**3 = 2 MHz
      * 16 MHz / 2**9 = 31250 Hz
      * 16 MHz / 2**7 = 125 kHz
+     * 16 MHz / 2**6 = 250 kHz
      */
-    TIMER_MEASUREMENT->PRESCALER = 7;
+    TIMER_MEASUREMENT->PRESCALER = 6;
     // no shortcuts
     TIMER_MEASUREMENT->SHORTS = 0;
     // clear the task first to be usable for later
@@ -144,8 +145,8 @@ void configure_measurement_timer()
     TIMER_MEASUREMENT->CC[1] = measurement_interval;
 
     // enable interrupt upon compare event
-    TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos);
-    TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
+    TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos)
+                                | (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
 
     // configure debug pin as output
     #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
@@ -221,6 +222,13 @@ void TIMER2_IRQHandler()
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
 
+        // stop pulse counter
+        stop_pulse_counter();
+
+        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
+            nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT_INTERVAL);
+        #endif
+
         if (handler_measurement_complete != 0)
         {
             (*handler_measurement_complete)();
@@ -230,18 +238,20 @@ void TIMER2_IRQHandler()
     /*
      * once every measurement interval
      */
-    else if (TIMER_MEASUREMENT->EVENTS_COMPARE[1]                      // compare channel 1 event
+    if (TIMER_MEASUREMENT->EVENTS_COMPARE[1]                           // compare channel 1 event
     && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE1_Msk))    // channel 1 is enabled
     {
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
 
-        // clear and restart counter
-        PULSE_COUNTER->TASKS_CLEAR = 1;
-        //PULSE_COUNTER->TASKS_START = 1;
+        // clear/restart measurement timer
+        TIMER_MEASUREMENT->TASKS_CLEAR = 1;
+
+        // clear/restart counter
+        restart_pulse_counter();
 
         #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-            nrf_gpio_pin_toggle(PIN_DEBUG_MEASUREMENT_INTERVAL);
+            nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT_INTERVAL);
         #endif
 
         if (handler_measurement_interval != 0)

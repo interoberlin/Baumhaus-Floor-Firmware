@@ -27,8 +27,10 @@
  * measurement duration: 10 ms
  * measurement interval: 13 ms / 77 Hz
  */ 
-#define measurement_duration 1250
-#define measurement_interval 1625
+//#define measurement_duration 1250 // 10ms @PRESCALER=7
+//#define measurement_interval 1625 // 13ms @PRESCALER=7
+#define measurement_duration 2500 // 10ms @PRESCALER=6
+#define measurement_interval 3250 // 13ms @PRESCALER=6
 
 #define sensor_pin(index) (const uint8_t[]){1,2,7,6,5}[index]
 
