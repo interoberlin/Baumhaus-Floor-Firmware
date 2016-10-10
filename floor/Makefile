@@ -1,3 +1,5 @@
+GDB=arm-none-eabi-gdb
+
 TARGET_CHIP := NRF51822_QFAA_CA
 BOARD := BOARD_PCA10001
 
@@ -14,3 +16,17 @@ DEVICE_VARIANT := xxaa
 #USE_SOFTDEVICE := s110
 
 include $(SDK_PATH)Source/templates/gcc/Makefile.common
+
+define LOAD_SOFTDEVICE_COMMAND
+target remote localhost:3333
+load
+monitor reset halt
+continue
+endef
+export LOAD_SOFTDEVICE_COMMAND
+
+# Flash the SoftDevice HEX-file into the chip
+flash:
+	echo "$$LOAD_SOFTDEVICE_COMMAND" | $(GDB) _build/main_xxaa.hex
+
+
