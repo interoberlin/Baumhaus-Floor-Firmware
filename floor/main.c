@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "ble_uart.h"
+#include "bluetooth.h"
+
 #include "clock.h"
 
 #include "floor.h"
@@ -93,30 +96,20 @@ void init_measurement()
 }
 
 /**
- * Initialize Bluetooth Low Energy capabilities:
- *
- *  initialize SoftDevice
- *  configure GATT server
- *  attach event handlers
- *  configure advertising
- *  start advertising
- *
- */
-void init_ble()
-{
-    // TODO...
-    //set_handler_ble_connected(&on_ble_connected);
-    //set_handler_ble_disconnected(&on_ble_disconnected);
-}
-
-/**
  * Main firmware loop
  */
 int main(void)
 {
+    printf("Sup\n");
+
     //init_hfclock();
-    init_ble();
+    ble_init();
+
+    printf("BLE init ferdsch\n");
+
     init_measurement();
+
+    select_first_sensor();
     measurement_timer_enable();
 
     // infinite loop
