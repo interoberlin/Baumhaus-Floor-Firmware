@@ -123,9 +123,9 @@ int main(void)
     // infinite loop
 	while (true)
 	{
-	    asm("wfi"); // sleep: wait for interrupt
-	 /*   __WFI();
-	    __SEV();
-	    __WFE(); */
+//        asm("wfi");
+        nrf_delay_ms(1000);
+        char* s = "Interoberlin!";
+        ble_attempt_to_send(s, strlen(s));
 	}
 }
