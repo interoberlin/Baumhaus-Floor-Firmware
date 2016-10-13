@@ -28,7 +28,9 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t * p
     //                any communication.
     //                Use with care. Un-comment the line below to use.
     //ble_debug_assert_handler(error_code, line_num, p_file_name);
-    printf("Error #%d. Restarting.\n", error_code);
+    //printf("Error #%d. Restarting.\n", error_code);
+
+    printf("Error %#x in %s, line %u\nRestarting...\n", (unsigned int) error_code, (char*) p_file_name, (unsigned int) line_num);
 
     // On assert, the system can only recover with a reset.
     NVIC_SystemReset();
@@ -453,51 +455,6 @@ static void power_manage(void)
 {
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
-}
-
-
-void uart_putstring(const uint8_t * str)
-{
-    uint32_t err_code;
-
-    uint8_t len = strlen((char *) str);
-    for (uint8_t i = 0; i < len; i++)
-    {
-        err_code = app_uart_put(str[i]);
-        APP_ERROR_CHECK(err_code);
-    }
-}
-
-
-/**@brief   Function for handling UART interrupts.
- *
- * @details This function will receive a single character from the UART and append it to a string.
- *          The string will be be sent over BLE when the last character received was a 'new line'
- *          i.e '\n' (hex 0x0D) or if the string has reached a length of @ref NUS_MAX_DATA_LENGTH.
- */
-
-void uart_evt_callback(app_uart_evt_t * uart_evt)
-{
-    //uint32_t err_code;
-
-    switch (uart_evt->evt_type)
-    {
-        case APP_UART_DATA:
-            //Data is ready on the UART
-            break;
-
-        case APP_UART_DATA_READY:
-            //Data is ready on the UART FIFO
-            break;
-
-        case APP_UART_TX_EMPTY:
-            //Data has been successfully transmitted on the UART
-            break;
-
-        default:
-            break;
-    }
-
 }
 
 

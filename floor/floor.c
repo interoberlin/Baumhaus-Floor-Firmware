@@ -210,53 +210,53 @@ void set_handler_measurement_interval(handler_t handler)
 
 //TIMER_ISR()()
 // manual setting for testing
-void TIMER2_IRQHandler()
-{
-    /*
-     * a measurement is complete:
-     * the counter value has been captured
-     */
-    if (TIMER_MEASUREMENT->EVENTS_COMPARE[0]                           // compare channel 0 event
-    && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE0_Msk))    // channel 0 is enabled
-    {
-        // clear this event
-        TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
-
-        // stop pulse counter
-        stop_pulse_counter();
-
-        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-            nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT_INTERVAL);
-        #endif
-
-        if (handler_measurement_complete != 0)
-        {
-            (*handler_measurement_complete)();
-        }
-    }
-
-    /*
-     * once every measurement interval
-     */
-    if (TIMER_MEASUREMENT->EVENTS_COMPARE[1]                           // compare channel 1 event
-    && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE1_Msk))    // channel 1 is enabled
-    {
-        // clear this event
-        TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
-
-        // clear/restart measurement timer
-        TIMER_MEASUREMENT->TASKS_CLEAR = 1;
-
-        // clear/restart counter
-        restart_pulse_counter();
-
-        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-            nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT_INTERVAL);
-        #endif
-
-        if (handler_measurement_interval != 0)
-        {
-            (*handler_measurement_interval)();
-        }
-    }
-}
+//void TIMER2_IRQHandler()
+//{
+//    /*
+//     * a measurement is complete:
+//     * the counter value has been captured
+//     */
+//    if (TIMER_MEASUREMENT->EVENTS_COMPARE[0]                           // compare channel 0 event
+//    && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE0_Msk))    // channel 0 is enabled
+//    {
+//        // clear this event
+//        TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
+//
+//        // stop pulse counter
+//        stop_pulse_counter();
+//
+//        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
+//            nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT_INTERVAL);
+//        #endif
+//
+//        if (handler_measurement_complete != 0)
+//        {
+//            (*handler_measurement_complete)();
+//        }
+//    }
+//
+//    /*
+//     * once every measurement interval
+//     */
+//    if (TIMER_MEASUREMENT->EVENTS_COMPARE[1]                           // compare channel 1 event
+//    && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE1_Msk))    // channel 1 is enabled
+//    {
+//        // clear this event
+//        TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
+//
+//        // clear/restart measurement timer
+//        TIMER_MEASUREMENT->TASKS_CLEAR = 1;
+//
+//        // clear/restart counter
+//        restart_pulse_counter();
+//
+//        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
+//            nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT_INTERVAL);
+//        #endif
+//
+//        if (handler_measurement_interval != 0)
+//        {
+//            (*handler_measurement_interval)();
+//        }
+//    }
+//}

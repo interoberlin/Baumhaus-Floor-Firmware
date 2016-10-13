@@ -31,9 +31,9 @@
 
 #define ADVERTISING_LED_PIN_NO          30                                       /**< LED to indicate advertising state. */
 #define CONNECTED_LED_PIN_NO            29                                       /**< LED to indicate connected state. */
-#define PIN_UART_ACTIVITY                        28
+#define PIN_UART_ACTIVITY               28
 
-#define DEVICE_NAME                     "Nina"                               /**< Name of device. Will be included in the advertising data. */
+#define DEVICE_NAME                     "Bodensensor"                               /**< Name of device. Will be included in the advertising data. */
 
 #define APP_ADV_INTERVAL                64                                          /**< The advertising interval (in units of 0.625 ms. This value corresponds to 40 ms). */
 #define APP_ADV_TIMEOUT_IN_SECONDS      180                                         /**< The advertising timeout (in units of seconds). */

@@ -15,6 +15,8 @@
 
 #define LED_PIN 28
 
+#ifdef FLOOR_H
+
 /**
  * This method is invoked
  * once every measurement interval.
@@ -63,6 +65,24 @@ void on_ble_disconnected()
 {
     measurement_timer_disable();
 }
+
+/**
+ * Prepare timers and counters
+ * for the measurement
+ */
+void init_measurement()
+{
+    configure_pulse_counter();
+    configure_measurement_timer();
+    set_handler_measurement_interval(&on_measurement_start);
+    set_handler_measurement_complete(&on_measurement_complete);
+}
+
+#endif // #ifdef FLOOR_H
+
+
+#ifdef CLOCK_H
+
 /**
  * Make sure, the high frequency clock is started
  */
@@ -83,29 +103,17 @@ void init_hfclock()
     }
 }
 
-/**
- * Prepare timers and counters
- * for the measurement
- */
-void init_measurement()
-{
-    configure_pulse_counter();
-    configure_measurement_timer();
-    set_handler_measurement_interval(&on_measurement_start);
-    set_handler_measurement_complete(&on_measurement_complete);
-}
+#endif // #ifdef CLOCK_H
 
 /**
  * Main firmware loop
  */
 int main(void)
 {
-    printf("Sup\n");
+    printf("Sup'\n");
 
     //init_hfclock();
     ble_init();
-
-    printf("BLE init ferdsch\n");
 
     init_measurement();
 
@@ -113,11 +121,11 @@ int main(void)
     measurement_timer_enable();
 
     // infinite loop
-	while(true)
+	while (true)
 	{
-	 //   asm("wfi"); // sleep: wait for interrupt
-	    __WFI();
+	    asm("wfi"); // sleep: wait for interrupt
+	 /*   __WFI();
 	    __SEV();
-	    __WFE();
+	    __WFE(); */
 	}
 }
