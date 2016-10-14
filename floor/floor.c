@@ -1,13 +1,17 @@
 
 #include "floor.h"
 
+// how many sensors are attached to this microcontroller
+#define  sensor_count 1
+
+// the IDs of the sensors, which are attached
+const    uint8_t  sensor_id[] = {42};
+
+// a permanently updated array of sensor values
+volatile uint32_t sensor_value[] = {0};
 
 // index of the currently measured sensor
 uint8_t current_sensor = 0;
-
-// local pointers to event handlers
-handler_t handler_measurement_complete = 0;
-handler_t handler_measurement_interval = 0;
 
 
 /**
@@ -183,16 +187,6 @@ void measurement_timer_disable()
     TIMER_MEASUREMENT->TASKS_STOP = 1;
 }
 
-void set_handler_measurement_complete(handler_t handler)
-{
-    handler_measurement_complete = handler;
-}
-
-void set_handler_measurement_interval(handler_t handler)
-{
-    handler_measurement_interval = handler;
-}
-
 /**
  * Interrupts Service Routine (ISR) for the timer,
  * which we use to determine measurement duration
@@ -207,6 +201,9 @@ void set_handler_measurement_interval(handler_t handler)
 //#else
 //    #define TIMER_ISR() void unused
 //#endif
+
+extern void on_measurement_start();
+extern void on_measurement_complete();
 
 //TIMER_ISR()()
 // manual setting for testing
@@ -229,10 +226,7 @@ void TIMER2_IRQHandler()
             nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT_INTERVAL);
         #endif
 
-        if (handler_measurement_complete != 0)
-        {
-            (*handler_measurement_complete)();
-        }
+        on_measurement_complete();
     }
 
     /*
@@ -250,13 +244,13 @@ void TIMER2_IRQHandler()
         // clear/restart counter
         restart_pulse_counter();
 
+        // continue measurement with next sensor
+        select_next_sensor();
+
         #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
             nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT_INTERVAL);
         #endif
 
-        if (handler_measurement_interval != 0)
-        {
-            (*handler_measurement_interval)();
-        }
+        on_measurement_start();
     }
 }

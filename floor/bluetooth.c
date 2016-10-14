@@ -8,6 +8,9 @@ static ble_nus_t                        m_nus;                                  
 static bool ble_buffer_available = true;
 static bool tx_complete = false;
 
+extern void on_ble_connected();
+extern void on_ble_disconnected();
+
 
 /**@brief     Error handler function, which is called when an error has occurred.
  *
@@ -327,6 +330,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             nrf_gpio_pin_clear(PIN_UART_ACTIVITY);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 
+            on_ble_connected();
+
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
@@ -334,6 +339,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
             nrf_gpio_pin_clear(CONNECTED_LED_PIN_NO);
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
+
+            on_ble_disconnected();
 
             advertising_start();
 

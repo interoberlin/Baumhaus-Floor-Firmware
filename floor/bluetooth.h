@@ -31,7 +31,7 @@
 
 #define ADVERTISING_LED_PIN_NO          30                                       /**< LED to indicate advertising state. */
 #define CONNECTED_LED_PIN_NO            29                                       /**< LED to indicate connected state. */
-#define PIN_UART_ACTIVITY               28
+#define PIN_UART_ACTIVITY               27
 
 #define DEVICE_NAME                     "Bodensensor"                               /**< Name of device. Will be included in the advertising data. */
 
