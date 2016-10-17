@@ -2,16 +2,17 @@
 #include "floor.h"
 
 // how many sensors are attached to this microcontroller
-#define  sensor_count 1
+#define  sensor_count 5
 
 // the IDs of the sensors, which are attached
-const    uint8_t  sensor_id[] = {42};
+const    uint8_t  sensor_id[] = {42,37,28,19,87};
 
 // a permanently updated array of sensor values
-volatile uint32_t sensor_value[] = {0};
+volatile uint16_t sensor_values[sensor_count];
 
 // index of the currently measured sensor
-uint8_t current_sensor = 0;
+//  values: 0 to sensor_count-1
+uint8_t index_sensor_currently_measured = 0;
 
 
 /**
@@ -30,25 +31,8 @@ void configure_pin_for_counting(uint8_t pin)
  */
 void select_first_sensor()
 {
-    current_sensor = 1;
+    index_sensor_currently_measured = 1;
     configure_pin_for_counting(sensor_pin(0));
-}
-
-/**
- * Select the next sensor to be measured
- */
-void select_next_sensor()
-{
-    current_sensor++;
-
-    if (is_last_sensor())
-    {
-        select_first_sensor();
-    }
-    else
-    {
-        configure_pin_for_counting(sensor_pin(current_sensor));
-    }
 }
 
 /**
@@ -57,17 +41,26 @@ void select_next_sensor()
  */
 bool is_last_sensor()
 {
-    return (current_sensor >= last_sensor);
+    return (index_sensor_currently_measured >= last_sensor);
 }
 
 /**
- * Generate a JSON string,
- * which contains the values of all attached sensors
+ * Select the next sensor to be measured
  */
-void generate_json()
+void select_next_sensor()
 {
-    // TODO
+    index_sensor_currently_measured++;
+
+    if (is_last_sensor())
+    {
+        select_first_sensor();
+    }
+    else
+    {
+        configure_pin_for_counting(sensor_pin(index_sensor_currently_measured));
+    }
 }
+
 
 /**
  * Prepare a counter peripheral for usage as pulse counter and
@@ -110,7 +103,7 @@ void stop_pulse_counter()
     PULSE_COUNTER->TASKS_STOP = 1;
 }
 
-uint32_t get_pulse_count()
+uint16_t get_pulse_count()
 {
     // request counter value to register
     //PULSE_COUNTER->TASKS_CAPTURE[0] = 1; // value capturing has been moved to PPI
@@ -153,8 +146,13 @@ void configure_measurement_timer()
                                 | (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
 
     // configure debug pin as output
-    #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-        nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT_INTERVAL);
+    #ifdef PIN_DEBUG_MEASUREMENT
+        nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT);
+    #endif
+
+    // configure debug pin as output
+    #ifdef PIN_DEBUG_MEASUREMENT_CYCLE
+        nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT_CYCLE);
     #endif
 
     // enable appropriate timer interrupt
@@ -202,19 +200,17 @@ void measurement_timer_disable()
 //    #define TIMER_ISR() void unused
 //#endif
 
-extern void on_measurement_start();
-extern void on_measurement_complete();
+extern void on_measurement_cycle_complete(volatile uint16_t*);
 
 //TIMER_ISR()()
 // manual setting for testing
 void TIMER2_IRQHandler()
 {
     /*
-     * a measurement is complete:
-     * the counter value has been captured
+     * Measurement complete:
+     * The counter value has been captured (by PPI)
      */
-    if (TIMER_MEASUREMENT->EVENTS_COMPARE[0]                           // compare channel 0 event
-    && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE0_Msk))    // channel 0 is enabled
+    if (TIMER_MEASUREMENT->EVENTS_COMPARE[0])  // it's a channel 1 compare event
     {
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[0] = 0;
@@ -222,18 +218,29 @@ void TIMER2_IRQHandler()
         // stop pulse counter
         stop_pulse_counter();
 
-        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-            nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT_INTERVAL);
+        #ifdef PIN_DEBUG_MEASUREMENT
+            nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT);
         #endif
 
-        on_measurement_complete();
+        sensor_values[index_sensor_currently_measured] = get_pulse_count();
+
+        // report results every 5 sensors
+        if (index_sensor_currently_measured % 5 == 0)
+        {
+            #ifdef PIN_DEBUG_MEASUREMENT_CYCLE
+                nrf_gpio_pin_toggle(PIN_DEBUG_MEASUREMENT_CYCLE);
+            #endif
+
+            // invoke external event handler
+            on_measurement_cycle_complete(sensor_values);
+        }
     }
 
     /*
-     * once every measurement interval
+     * Measurement interval reached:
+     * Begin new measurement cycle
      */
-    if (TIMER_MEASUREMENT->EVENTS_COMPARE[1]                           // compare channel 1 event
-    && (TIMER_MEASUREMENT->INTENSET & TIMER_INTENSET_COMPARE1_Msk))    // channel 1 is enabled
+    if (TIMER_MEASUREMENT->EVENTS_COMPARE[1])  // it's a channel 0 compare event
     {
         // clear this event
         TIMER_MEASUREMENT->EVENTS_COMPARE[1] = 0;
@@ -248,9 +255,7 @@ void TIMER2_IRQHandler()
         select_next_sensor();
 
         #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-            nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT_INTERVAL);
+            nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT);
         #endif
-
-        on_measurement_start();
     }
 }

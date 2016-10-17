@@ -21,30 +21,12 @@ uint8_t send_length = 0;
 #ifdef FLOOR_H
 
 /**
- * This method is invoked
- * once every measurement interval.
- * It configures and starts a measurement.
- */
-void on_measurement_start()
-{
-}
-
-/**
  * This method is invoked,
- * when the measurement time has been elapsed.
- * It stops the pulse counter and evaluates the result.
+ * when five sensors have been measured.
  */
-void on_measurement_complete()
+void on_measurement_cycle_complete(volatile uint16_t* sensor_values)
 {
-     //get_pulse_count();
-
-    send_string = "{id:42,value:10000}";
-    send_length = strlen(send_string);
-
-    if (is_last_sensor())
-    {
-        //generate_json();
-    }
+    // TODO
 }
 
 /**

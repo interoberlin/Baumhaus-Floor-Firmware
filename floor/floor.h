@@ -32,32 +32,20 @@
 #define measurement_duration 2500 // 10ms @PRESCALER=6
 #define measurement_interval 3250 // 13ms @PRESCALER=6
 
-#define sensor_pin(index) (const uint8_t[]){1,2,7,6,5}[index]
+#define sensor_pin(index) (const uint8_t[]){1,4,7,6,5}[index]
 
-#define PIN_DEBUG_MEASUREMENT_INTERVAL 0
+#define PIN_DEBUG_MEASUREMENT 0
+#define PIN_DEBUG_MEASUREMENT_CYCLE 2
 
 // ------------------------------------------------
-
-// a typedef for the handler functions,
-// which can be attached
-typedef void (*handler_t)();
-
-void select_first_sensor();
-void select_next_sensor();
-bool is_last_sensor();
-
-void generate_json();
 
 void configure_pulse_counter();
 void restart_pulse_counter();
 void stop_pulse_counter();
-uint32_t get_pulse_count();
+uint16_t get_pulse_count();
 
 void configure_measurement_timer();
 void measurement_timer_enable();
 void measurement_timer_disable();
-
-void set_handler_measurement_complete(handler_t);
-void set_handler_measurement_interval(handler_t);
 
 #endif // FLOOR_H
