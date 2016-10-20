@@ -63,8 +63,13 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
  */
 static void leds_init(void)
 {
-    nrf_gpio_cfg_output(ADVERTISING_LED_PIN_NO);
-    nrf_gpio_cfg_output(CONNECTED_LED_PIN_NO);
+    nrf_gpio_cfg_output(PIN_LED_ADVERTISING);
+    // active low
+    nrf_gpio_pin_set(PIN_LED_ADVERTISING);
+
+    nrf_gpio_cfg_output(PIN_LED_CONNECTED);
+    // active high
+    nrf_gpio_pin_clear(PIN_LED_CONNECTED);
 }
 
 /**@brief   Function for Timer initialization.
@@ -188,6 +193,36 @@ bool ble_attempt_to_send(uint8_t * data, uint8_t length)
     return true;
 }
 
+/**
+ * Notify the connected device using the provided message
+ * if the device subscribed the RX characteristic
+ */
+uint32_t ble_notify(ble_nus_t* p_nus, uint8_t* data, uint16_t length)
+{
+
+    if (p_nus == NULL)
+    {
+        return NRF_ERROR_NULL;
+    }
+
+    if ((p_nus->conn_handle == BLE_CONN_HANDLE_INVALID) || (!p_nus->is_notification_enabled))
+    {
+        return NRF_ERROR_INVALID_STATE;
+    }
+
+    // notification / indication
+    ble_gatts_hvx_params_t hvx_params;
+
+    memset(&hvx_params, 0, sizeof(hvx_params));
+
+    hvx_params.handle = p_nus->rx_handles.value_handle;
+    hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+    hvx_params.p_data = data;
+    hvx_params.p_len  = &length;
+
+    return sd_ble_gatts_hvx(p_nus->conn_handle, &hvx_params);
+}
+
 /**@brief    Function for handling the data from the Nordic UART Service.
  *
  * @details  This function will process the data received from the Nordic UART BLE Service and send
@@ -196,7 +231,7 @@ bool ble_attempt_to_send(uint8_t * data, uint8_t length)
 /**@snippet [Handling the data received over BLE] */
 void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t length)
 {
-    nrf_gpio_pin_toggle(PIN_UART_ACTIVITY);
+    nrf_gpio_pin_toggle(PIN_LED_RECEIVE);
     ble_attempt_to_send(p_data, length);
     //printf("%s\n", p_data);
 }
@@ -205,7 +240,7 @@ void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t length)
 
 /**@brief Function for initializing services that will be used by the application.
  */
-static void services_init(void)
+static void init_services(void)
 {
     uint32_t         err_code;
     ble_nus_init_t   nus_init;
@@ -221,7 +256,7 @@ static void services_init(void)
 
 /**@brief Function for initializing security parameters.
  */
-static void sec_params_init(void)
+static void init_security_parameters(void)
 {
     m_sec_params.timeout      = SEC_PARAM_TIMEOUT;
     m_sec_params.bond         = SEC_PARAM_BOND;
@@ -244,7 +279,7 @@ static void sec_params_init(void)
  *
  * @param[in]   p_evt   Event received from the Connection Parameters Module.
  */
-static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
+static void on_connection_parameters_event(ble_conn_params_evt_t * p_evt)
 {
     uint32_t err_code;
 
@@ -268,7 +303,7 @@ static void conn_params_error_handler(uint32_t nrf_error)
 
 /**@brief Function for initializing the Connection Parameters module.
  */
-static void conn_params_init(void)
+static void init_connection_parameters(void)
 {
     uint32_t               err_code;
     ble_conn_params_init_t cp_init;
@@ -281,7 +316,7 @@ static void conn_params_init(void)
     cp_init.max_conn_params_update_count   = MAX_CONN_PARAMS_UPDATE_COUNT;
     cp_init.start_on_notify_cccd_handle    = BLE_GATT_HANDLE_INVALID;
     cp_init.disconnect_on_fail             = false;
-    cp_init.evt_handler                    = on_conn_params_evt;
+    cp_init.evt_handler                    = on_connection_parameters_event;
     cp_init.error_handler                  = conn_params_error_handler;
 
     err_code = ble_conn_params_init(&cp_init);
@@ -308,7 +343,8 @@ static void advertising_start(void)
     err_code = sd_ble_gap_adv_start(&adv_params);
     APP_ERROR_CHECK(err_code);
 
-    nrf_gpio_pin_set(ADVERTISING_LED_PIN_NO);
+    // active low
+    nrf_gpio_pin_clear(PIN_LED_ADVERTISING);
 }
 
 
@@ -322,12 +358,13 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     static ble_gap_evt_auth_status_t m_auth_status;
     ble_gap_enc_info_t *             p_enc_info;
 
-    switch (p_ble_evt->header.evt_id)
-    {
+    switch (p_ble_evt->header.evt_id)    {
         case BLE_GAP_EVT_CONNECTED:
-            nrf_gpio_pin_clear(ADVERTISING_LED_PIN_NO);
-            nrf_gpio_pin_set(CONNECTED_LED_PIN_NO);
-            nrf_gpio_pin_clear(PIN_UART_ACTIVITY);
+            // active low
+            nrf_gpio_pin_set(PIN_LED_ADVERTISING);
+            // active high
+            nrf_gpio_pin_set(PIN_LED_CONNECTED);
+
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
 
             on_ble_connected();
@@ -335,9 +372,11 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-            nrf_gpio_pin_clear(PIN_UART_ACTIVITY);
+            // active low
+            nrf_gpio_pin_clear(PIN_LED_ADVERTISING);
+            // active high
+            nrf_gpio_pin_clear(PIN_LED_CONNECTED);
 
-            nrf_gpio_pin_clear(CONNECTED_LED_PIN_NO);
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 
             on_ble_disconnected();
@@ -380,17 +419,12 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         case BLE_GAP_EVT_TIMEOUT:
             if (p_ble_evt->evt.gap_evt.params.timeout.src == BLE_GAP_TIMEOUT_SRC_ADVERTISEMENT)
             {
-                nrf_gpio_pin_clear(ADVERTISING_LED_PIN_NO);
-
-                /*
-                // Configure buttons with sense level low as wakeup source.
-                nrf_gpio_cfg_sense_input(WAKEUP_BUTTON_PIN,
-                                         BUTTON_PULL,
-                                         NRF_GPIO_PIN_SENSE_LOW);
-                */
+                nrf_gpio_pin_clear(PIN_LED_CONNECTED);
 
                 // Go to system-off mode (this function will not return; wakeup will cause a reset)
-                err_code = sd_power_system_off();
+                //err_code = sd_power_system_off();
+                printf("Timeout.\n");
+                NVIC_SystemReset();
                 APP_ERROR_CHECK(err_code);
             }
             break;
@@ -445,25 +479,6 @@ static void ble_stack_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-/**@brief  Function for configuring the buttons.
-
-static void buttons_init(void)
-{
-    nrf_gpio_cfg_sense_input(WAKEUP_BUTTON_PIN,
-                             BUTTON_PULL,
-                             NRF_GPIO_PIN_SENSE_LOW);
-}
-*/
-
-
-/**@brief  Function for placing the application in low power state while waiting for events.
- */
-static void power_manage(void)
-{
-    uint32_t err_code = sd_app_evt_wait();
-    APP_ERROR_CHECK(err_code);
-}
-
 
 void ble_init()
 {
@@ -474,10 +489,10 @@ void ble_init()
 //    uart_init();
     ble_stack_init();
     gap_params_init();
-    services_init();
+    init_services();
     advertising_init();
-    conn_params_init();
-    sec_params_init();
+    init_connection_parameters();
+    init_security_parameters();
 
     printf("init complete.\n");
 

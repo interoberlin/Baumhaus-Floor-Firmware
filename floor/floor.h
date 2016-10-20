@@ -9,6 +9,8 @@
 #include "nrf_gpio.h"
 #include "nrf_gpiote.h"
 
+#include "pinout.h"
+
 /*
  * ------------------------------------------------
  *  Configuration
@@ -27,19 +29,22 @@
  * measurement duration: 10 ms
  * measurement interval: 13 ms / 77 Hz
  */ 
+// kHz
+#define BASE_CLOCK (float) 16000
 //#define measurement_duration 1250 // 10ms @PRESCALER=7
 //#define measurement_interval 1625 // 13ms @PRESCALER=7
-#define measurement_duration 2500 // 10ms @PRESCALER=6
-#define measurement_interval 3250 // 13ms @PRESCALER=6
-
-#define sensor_pin(index) (const uint8_t[]){1,4,7,6,5}[index]
-
-#define PIN_DEBUG_MEASUREMENT 0
-#define PIN_DEBUG_MEASUREMENT_CYCLE 2
+//#define measurement_duration 2500 // 10ms @PRESCALER=6
+//#define measurement_interval 3250 // 13ms @PRESCALER=6
+#define MEASUREMENT_PRESCALER       6
+#define MEASUREMENT_DURATION_MS     20
+#define MEASUREMENT_DURATION        (uint32_t) (MEASUREMENT_DURATION_MS / ((1 << MEASUREMENT_PRESCALER) / BASE_CLOCK))
+#define MEASUREMENT_INTERVAL_MS     100
+#define MEASUREMENT_INTERVAL        (uint32_t) (MEASUREMENT_INTERVAL_MS / ((1 << MEASUREMENT_PRESCALER) / BASE_CLOCK))
 
 // ------------------------------------------------
 
 void configure_pulse_counter();
+void select_first_sensor();
 void restart_pulse_counter();
 void stop_pulse_counter();
 uint16_t get_pulse_count();

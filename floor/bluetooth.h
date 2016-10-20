@@ -23,15 +23,12 @@
 #include "app_util_platform.h"
 #include "ble_uart.h"
 
+#include "pinout.h"
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
 
 //#define WAKEUP_BUTTON_PIN               BUTTON_0                                    /**< Button used to wake up the application. */
-
-#define ADVERTISING_LED_PIN_NO          30                                       /**< LED to indicate advertising state. */
-#define CONNECTED_LED_PIN_NO            29                                       /**< LED to indicate connected state. */
-#define PIN_UART_ACTIVITY               27
 
 #define DEVICE_NAME                     "Bodensensor"                               /**< Name of device. Will be included in the advertising data. */
 

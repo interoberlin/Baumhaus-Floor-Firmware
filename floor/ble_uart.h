@@ -37,6 +37,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "pinout.h"
+
 //#define NORDIC_UUID_STYLE 1
 
 #ifdef NORDIC_UUID_STYLE

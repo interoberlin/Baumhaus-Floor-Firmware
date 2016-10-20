@@ -10,11 +10,17 @@
 #include "bluetooth.h"
 
 #include "floor.h"
+#include "pinout.h"
 
-#define PIN_LED 28
-
-char* send_string = "";
-uint8_t send_length = 0;
+/**
+ * Prepare LED for measurement indication
+ */
+void init_led()
+{
+    nrf_gpio_cfg_output(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+    // active low
+    nrf_gpio_pin_set(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+}
 
 #ifdef FLOOR_H
 
@@ -25,6 +31,9 @@ uint8_t send_length = 0;
 void on_measurement_cycle_complete(volatile uint16_t* sensor_values)
 {
     // TODO
+
+    // active low
+    nrf_gpio_pin_toggle(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
 }
 
 /**
@@ -33,7 +42,7 @@ void on_measurement_cycle_complete(volatile uint16_t* sensor_values)
  */
 void on_ble_connected()
 {
-    nrf_gpio_pin_set(PIN_LED);
+    // begin measurement cycle
     select_first_sensor();
     measurement_timer_enable();
 }
@@ -45,9 +54,8 @@ void on_ble_connected()
  */
 void on_ble_disconnected()
 {
+    // stop measuring the sensors
     measurement_timer_disable();
-
-    nrf_gpio_pin_clear(PIN_LED);
 }
 
 /**
@@ -70,21 +78,13 @@ int main(void)
 {
     printf("Sup'\n");
 
-    nrf_gpio_cfg_output(PIN_LED);
-    nrf_gpio_pin_clear(PIN_LED);
-
+    init_led();
     ble_init();
-
     init_measurement();
 
     // infinite loop
 	while (true)
 	{
-//        asm("wfi");
-	    nrf_delay_ms(1000);
-	    if (send_length > 0)
-	    {
-	        ble_attempt_to_send(send_string, send_length);
-	    }
+        asm("wfi");
 	}
 }

@@ -55,3 +55,7 @@ C_SOURCE_PATHS += $(SDK_PATH)Source/app_common
 C_SOURCE_PATHS += $(SDK_PATH)Source/sd_common
 
 include $(SDK_PATH)Source/templates/gcc/Makefile.common
+
+clean:
+	rm -rf *.o *.elf _build/
+	

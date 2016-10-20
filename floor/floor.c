@@ -138,22 +138,15 @@ void configure_measurement_timer()
     TIMER_MEASUREMENT->TASKS_CLEAR = 1;
 
     // set timer compare values
-    TIMER_MEASUREMENT->CC[0] = measurement_duration;
-    TIMER_MEASUREMENT->CC[1] = measurement_interval;
+    TIMER_MEASUREMENT->CC[0] = MEASUREMENT_DURATION;
+    TIMER_MEASUREMENT->CC[1] = MEASUREMENT_INTERVAL;
 
     // enable interrupt upon compare event
     TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos)
                                 | (TIMER_INTENSET_COMPARE1_Enabled << TIMER_INTENSET_COMPARE1_Pos);
 
     // configure debug pin as output
-    #ifdef PIN_DEBUG_MEASUREMENT
-        nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT);
-    #endif
-
-    // configure debug pin as output
-    #ifdef PIN_DEBUG_MEASUREMENT_CYCLE
-        nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT_CYCLE);
-    #endif
+    nrf_gpio_cfg_output(PIN_DEBUG_MEASUREMENT_INTERVAL);
 
     // enable appropriate timer interrupt
 //#ifdef FLOOR_USES_TIMER0
@@ -218,19 +211,13 @@ void TIMER2_IRQHandler()
         // stop pulse counter
         stop_pulse_counter();
 
-        #ifdef PIN_DEBUG_MEASUREMENT
-            nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT);
-        #endif
+        nrf_gpio_pin_clear(PIN_DEBUG_MEASUREMENT_INTERVAL);
 
         sensor_values[index_sensor_currently_measured] = get_pulse_count();
 
         // report results every 5 sensors
         if (index_sensor_currently_measured % 5 == 0)
         {
-            #ifdef PIN_DEBUG_MEASUREMENT_CYCLE
-                nrf_gpio_pin_toggle(PIN_DEBUG_MEASUREMENT_CYCLE);
-            #endif
-
             // invoke external event handler
             on_measurement_cycle_complete(sensor_values);
         }
@@ -254,8 +241,6 @@ void TIMER2_IRQHandler()
         // continue measurement with next sensor
         select_next_sensor();
 
-        #ifdef PIN_DEBUG_MEASUREMENT_INTERVAL
-            nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT);
-        #endif
+        nrf_gpio_pin_set(PIN_DEBUG_MEASUREMENT_INTERVAL);
     }
 }
