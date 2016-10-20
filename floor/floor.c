@@ -41,7 +41,7 @@ void select_first_sensor()
  */
 bool is_last_sensor()
 {
-    return (index_sensor_currently_measured >= last_sensor);
+    return (index_sensor_currently_measured >= SENSOR_COUNT);
 }
 
 /**
@@ -216,11 +216,13 @@ void TIMER2_IRQHandler()
         sensor_values[index_sensor_currently_measured] = get_pulse_count();
 
         // report results every 5 sensors
-        if (index_sensor_currently_measured % 5 == 0)
+        if (index_sensor_currently_measured % SENSOR_COUNT == 0)
         {
             // invoke external event handler
             on_measurement_cycle_complete(sensor_values);
         }
+
+        index_sensor_currently_measured = (index_sensor_currently_measured + 1) % SENSOR_COUNT;
     }
 
     /*

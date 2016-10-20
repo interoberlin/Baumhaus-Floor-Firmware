@@ -22,7 +22,7 @@
 
 // the index of the last sensor
 // counting start with 1
-#define last_sensor 5
+#define SENSOR_COUNT 5
 
 /*
  * timer overflow values as multiples of clock ticks (depends on fTIMER i.e. PRESCALER value)
