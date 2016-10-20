@@ -9,8 +9,6 @@
 #include "ble_uart.h"
 #include "bluetooth.h"
 
-#include "clock.h"
-
 #include "floor.h"
 
 #define PIN_LED 28
@@ -65,30 +63,6 @@ void init_measurement()
 #endif // #ifdef FLOOR_H
 
 
-#ifdef CLOCK_H
-
-/**
- * Make sure, the high frequency clock is started
- */
-void init_hfclock()
-{
-    // configure 16MHz crystal frequency
-    CLOCK_XTALFREQ = 0xFF;
-
-    // according to the Reference Manual the RADIO requires the crystal as clock source
-    CLOCK_HFCLKSTAT = 1;
-
-    // start high frequency clock
-    if (!CLOCK_EVENT_HFCLKSTARTED)
-    {
-        CLOCK_TASK_HFCLKSTART = 1;
-        while (!CLOCK_EVENT_HFCLKSTARTED)
-            asm("nop");
-    }
-}
-
-#endif // #ifdef CLOCK_H
-
 /**
  * Main firmware loop
  */
@@ -99,7 +73,6 @@ int main(void)
     nrf_gpio_cfg_output(PIN_LED);
     nrf_gpio_pin_clear(PIN_LED);
 
-    //init_hfclock();
     ble_init();
 
     init_measurement();
