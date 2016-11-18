@@ -4,9 +4,9 @@
 [submodule "ble"]
 	path = ble
 	url = git@github.com:interoberlin/libBLE.git
-[submodule "debug"]
-	path = debug
-	url = git@github.com:matthiasbock/nRF51-debug.git
 [submodule "nordic"]
 	path = nordic
 	url = git@github.com:matthiasbock/nRF51-nordic.git
+[submodule "sdk"]
+	path = sdk
+	url = git@github.com:matthiasbock/nRF51-sdk.git
