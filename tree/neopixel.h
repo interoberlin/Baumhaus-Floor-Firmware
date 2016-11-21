@@ -10,8 +10,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "nrf_delay.h"
-#include "nrf_gpio.h"
+#include <stdlib.h>
+#include <nrf_delay.h>
+#include <nrf_gpio.h>
 
 
 //These defines are timed specific to a series of if statements and will need to be changed

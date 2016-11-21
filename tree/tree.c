@@ -14,10 +14,10 @@
 #include "neopixel.h"
 
 // LEd strips
-neopixel_strip_t strip[8];
-volatile bool strip_changed[8] = {false, false, false, false, false, false, false, false};
-const uint8_t leds_per_strip = 10;
-const uint8_t strip_at_pin[8] = {3, 4, 2, 0, 29, 25, 23, 21};
+neopixel_strip_t strip[4];
+volatile bool strip_changed[4] = {false, false, false, false};
+const uint8_t leds_per_strip = 150;
+const uint8_t strip_at_pin[4] = {30, 4, 2, 0};
 
 
 /**
@@ -64,7 +64,7 @@ void setup_timers(void)
 // which strip is currently on
 volatile uint32_t r = 0;
 
-inline void pattern_rotation()
+void pattern_rotation()
 {
     // vorherige aus
     for(int i = 0; i<10; i++)
@@ -83,7 +83,7 @@ inline void pattern_rotation()
     strip_changed[r] = true;
 }
 
-inline void proceed_with_pattern()
+void proceed_with_pattern()
 {
     pattern_rotation();
 }
