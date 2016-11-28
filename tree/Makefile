@@ -19,17 +19,22 @@ OBJDUMP = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-objdump
 SIZE    = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-size
 GDB     = $(TOOLCHAIN_PATH)$(TOOLCHAIN_PREFIX)-gdb
 
-newlib  = /usr/lib/arm-none-eabi/newlib/libc.a
-
 #
 # Compiler and Linker
 #
 CFLAGS += -DNRF51
 CFLAGS += -std=gnu99 -Wall -Wextra -g
 CFLAGS += -mcpu=cortex-m0 -mthumb -mabi=aapcs -mfloat-abi=soft
+CFLAGS += -O3
 CFLAGS += -ffreestanding
+
 # keep every function in separate section. This will allow linker to dump unused functions
-CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
+CFLAGS += -ffunction-sections -fdata-sections
+
+# Do not use: -fno-strict-aliasing
+# see Redmine-Ticket #1051
+CFLAGS += -fstrict-aliasing
+
 CFLAGS += -fno-builtin --short-enums
 CFLAGS += -I ../nordic/arm/
 CFLAGS += -I ../nordic/
@@ -46,13 +51,14 @@ LDFLAGS += -L /usr/lib/arm-none-eabi/newlib/armv6-m/
 LDFLAGS += -static
 LDFLAGS += -nostartfiles -nostdlib
 LDFLAGS += --start-group
-LDFLAGS += -lgcc
+LDFLAGS += -lgcc -lc -nosys
+LDFLAGS += -Map tree.map
 
 # required for semihosting 
 CFLAGS  += --specs=rdimon.specs
-LDFLAGS += -lrdimon 
+LDFLAGS += -lrdimon
 
-# filename of used softdevice (full path)  
+# filename of used softdevice (full path)
 SOFTDEVICE = ../nordic/softdevice/s110_nrf51822_7.3.0_softdevice.hex
 
 
@@ -62,10 +68,10 @@ SOFTDEVICE = ../nordic/softdevice/s110_nrf51822_7.3.0_softdevice.hex
 
 all: tree.elf
 
-tree.elf: ../sdk/nrf51_startup.o $(newlib) ../nordic/nrf_delay.o neopixel.o tree.o 
+tree.elf: ../sdk/nrf51_startup.o ../nordic/nrf_delay.o neopixel.o tree.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-%.o: %.c
+%.o: %.c %.s
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.hex: %.elf
@@ -75,7 +81,7 @@ tree.elf: ../sdk/nrf51_startup.o $(newlib) ../nordic/nrf_delay.o neopixel.o tree
 	$(OBJCOPY) -Obinary $< $@
 
 clean:
-	rm -f *.o */*.o *.out *.bin *.elf *.hex *.map
+	rm -f *.o */*.o ../sdk/*.o ../nordic/*.o _build/*.o *.out *.bin *.elf *.hex *.map
 
 
 #
@@ -99,4 +105,3 @@ OPENOCD_CFG_DIR = ../sdk/debug/
 # workaround: problems because the folder is named like the target in the subfolder's Makefile
 .PHONY: debug
 include ../sdk/debug/Makefile
-
