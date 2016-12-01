@@ -29,7 +29,7 @@
  * measurement duration: 10 ms
  * measurement interval: 13 ms / 77 Hz
  */ 
-// kHz
+// in kHz because below we calculate with milliseonds
 #define BASE_CLOCK (float) 16000
 //#define measurement_duration 1250 // 10ms @PRESCALER=7
 //#define measurement_interval 1625 // 13ms @PRESCALER=7
