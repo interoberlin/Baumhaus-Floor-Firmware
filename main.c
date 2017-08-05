@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "ble_uart.h"
-#include "bluetooth.h"
+//#include "ble_uart.h"
+//#include "bluetooth.h"
 
 #include "floor.h"
 #include "pinout.h"
@@ -18,22 +18,26 @@
 void init_led()
 {
     nrf_gpio_cfg_output(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
-    // active low
-    nrf_gpio_pin_set(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+    // active high
+    nrf_gpio_pin_clear(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
 }
 
 #ifdef FLOOR_H
 
 /**
- * This method is invoked,
- * when five sensors have been measured.
+ * This method is invoked, whenever
+ * all sensors have been measured once.
  */
-void on_measurement_cycle_complete(volatile uint16_t* sensor_values)
+void on_measurement_cycle_complete(volatile uint16_t sensor_values[])
 {
-    // TODO
-
-    // active low
-    nrf_gpio_pin_toggle(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+    if (sensor_values[7] < 200)
+    {
+    	nrf_gpio_pin_set(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+    }
+    else
+    {
+    	nrf_gpio_pin_clear(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+    }
 }
 
 /**
@@ -79,8 +83,9 @@ int main(void)
     printf("Sup'\n");
 
     init_led();
-    ble_init();
+//    ble_init();
     init_measurement();
+    measurement_timer_enable();
 
     // infinite loop
 	while (true)

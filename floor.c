@@ -1,14 +1,8 @@
 
 #include "floor.h"
 
-// how many sensors are attached to this microcontroller
-#define  sensor_count 5
-
-// the IDs of the sensors, which are attached
-const    uint8_t  sensor_id[] = {42,37,28,19,87};
-
 // a permanently updated array of sensor values
-volatile uint16_t sensor_values[sensor_count];
+volatile uint16_t sensor_values[SENSOR_COUNT];
 
 // index of the currently measured sensor
 //  values: 0 to sensor_count-1
@@ -31,8 +25,8 @@ void configure_pin_for_counting(uint8_t pin)
  */
 void select_first_sensor()
 {
-    index_sensor_currently_measured = 1;
-    configure_pin_for_counting(sensor_pin(0));
+    index_sensor_currently_measured = 0;
+    configure_pin_for_counting(SENSOR_PIN(0));
 }
 
 /**
@@ -57,7 +51,7 @@ void select_next_sensor()
     }
     else
     {
-        configure_pin_for_counting(sensor_pin(index_sensor_currently_measured));
+        configure_pin_for_counting(SENSOR_PIN(index_sensor_currently_measured));
     }
 }
 
@@ -131,15 +125,15 @@ void configure_measurement_timer()
      * 16 MHz / 2**7 = 125 kHz
      * 16 MHz / 2**6 = 250 kHz
      */
-    TIMER_MEASUREMENT->PRESCALER = 6;
+    TIMER_MEASUREMENT->PRESCALER = MEASUREMENT_PRESCALER;
     // no shortcuts
     TIMER_MEASUREMENT->SHORTS = 0;
     // clear the task first to be usable for later
     TIMER_MEASUREMENT->TASKS_CLEAR = 1;
 
     // set timer compare values
-    TIMER_MEASUREMENT->CC[0] = MEASUREMENT_DURATION;
-    TIMER_MEASUREMENT->CC[1] = MEASUREMENT_INTERVAL;
+    TIMER_MEASUREMENT->CC[0] = MEASUREMENT_DURATION_TICKS;
+    TIMER_MEASUREMENT->CC[1] = MEASUREMENT_INTERVAL_TICKS;
 
     // enable interrupt upon compare event
     TIMER_MEASUREMENT->INTENSET = (TIMER_INTENSET_COMPARE0_Enabled << TIMER_INTENSET_COMPARE0_Pos)
@@ -161,6 +155,7 @@ void configure_measurement_timer()
 //#endif
 
     // manual setting for testing
+    NVIC_SetPriority(TIMER2_IRQn, 1);
     NVIC_EnableIRQ(TIMER2_IRQn);
 }
 
@@ -197,6 +192,7 @@ extern void on_measurement_cycle_complete(volatile uint16_t*);
 
 //TIMER_ISR()()
 // manual setting for testing
+
 void TIMER2_IRQHandler()
 {
     /*
