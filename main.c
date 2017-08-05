@@ -30,14 +30,38 @@ void init_led()
  */
 void on_measurement_cycle_complete(volatile uint16_t sensor_values[])
 {
-    if (sensor_values[7] < 200)
+    // for comparison, in order to detect pulse count changes, e.g. a person
+    static uint16_t previous_sensor_values[SENSOR_COUNT];
+    const uint16_t threshold = 15;
+
+    bool detected = false;
+    for (uint8_t i=0; i<SENSOR_COUNT; i++)
     {
-    	nrf_gpio_pin_set(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
+        if (sensor_values[i] < 42)
+            continue;
+
+        if (sensor_values[i] < previous_sensor_values[i]
+         && previous_sensor_values[i] - sensor_values[i] > threshold)
+        {
+            // damp bias in order to adapt to permanent pulse count changes,
+            // e.g. obstacles permanently present on the sensor area
+            previous_sensor_values[i] -= 8;
+
+            detected = true;
+            break;
+        }
+        else
+        {
+            // object left sensor area; pulse count returns to base level
+            if (sensor_values[i] > previous_sensor_values[i])
+                previous_sensor_values[i] = sensor_values[i];
+        }
     }
+
+    if (detected)
+        nrf_gpio_pin_set(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
     else
-    {
-    	nrf_gpio_pin_clear(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
-    }
+        nrf_gpio_pin_clear(PIN_LED_MEASUREMENT_CYCLE_COMPLETE);
 }
 
 /**
@@ -88,8 +112,8 @@ int main(void)
     measurement_timer_enable();
 
     // infinite loop
-	while (true)
-	{
+    while (true)
+    {
         asm("wfi");
-	}
+    }
 }

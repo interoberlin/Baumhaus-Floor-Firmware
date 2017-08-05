@@ -36,9 +36,9 @@
 //#define measurement_duration 2500 // 10ms @PRESCALER=6
 //#define measurement_interval 3250 // 13ms @PRESCALER=6
 #define MEASUREMENT_PRESCALER       6
-#define MEASUREMENT_DURATION_MS     20
+#define MEASUREMENT_DURATION_MS     10
 #define MEASUREMENT_DURATION_TICKS  (uint32_t) (MEASUREMENT_DURATION_MS / ((1 << MEASUREMENT_PRESCALER) / BASE_CLOCK))
-#define MEASUREMENT_INTERVAL_MS     100
+#define MEASUREMENT_INTERVAL_MS     50
 #define MEASUREMENT_INTERVAL_TICKS  (uint32_t) (MEASUREMENT_INTERVAL_MS / ((1 << MEASUREMENT_PRESCALER) / BASE_CLOCK))
 
 // ------------------------------------------------
